@@ -1,0 +1,275 @@
+export type ExcalidrawFileRecord = {
+  id?: string;
+  dataURL?: string;
+  mimeType?: string;
+  created?: number;
+  [key: string]: unknown;
+};
+
+export type CompressionResult = {
+  dataURL: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  changed: boolean;
+};
+
+const DEFAULT_MIN_DATA_URL_LENGTH = 350_000;
+const DEFAULT_MAX_DIMENSION = 2800;
+const DEFAULT_MIN_IMPROVEMENT_RATIO = 0.9;
+
+const COMPRESSIBLE_MIME_PREFIX = "image/";
+const NON_COMPRESSIBLE_MIME_TYPES = new Set(["image/svg+xml", "image/gif"]);
+
+const isDataImageUrl = (value: unknown): value is string =>
+  typeof value === "string" && value.startsWith("data:image/");
+
+const getMimeTypeFromDataUrl = (dataURL: string): string | null => {
+  const match = /^data:([^;,]+)[;,]/i.exec(dataURL);
+  return match ? match[1].toLowerCase() : null;
+};
+
+const canCompressMimeType = (mimeType: string): boolean =>
+  mimeType.startsWith(COMPRESSIBLE_MIME_PREFIX) &&
+  !NON_COMPRESSIBLE_MIME_TYPES.has(mimeType);
+
+const loadImageFromDataUrl = (dataURL: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to decode image data"));
+    image.src = dataURL;
+  });
+
+const clampDimension = (width: number, height: number, maxDimension: number) => {
+  const safeWidth = Math.max(1, Math.round(width));
+  const safeHeight = Math.max(1, Math.round(height));
+  const largest = Math.max(safeWidth, safeHeight);
+  if (!Number.isFinite(largest) || largest <= maxDimension) {
+    return { width: safeWidth, height: safeHeight };
+  }
+
+  const ratio = maxDimension / largest;
+  return {
+    width: Math.max(1, Math.round(safeWidth * ratio)),
+    height: Math.max(1, Math.round(safeHeight * ratio)),
+  };
+};
+
+const drawToCanvas = (
+  image: HTMLImageElement,
+  width: number,
+  height: number
+): HTMLCanvasElement => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Failed to get canvas context for image compression");
+  }
+  context.drawImage(image, 0, 0, width, height);
+  return canvas;
+};
+
+const getTargetMimeType = (originalMimeType: string): string => {
+  if (originalMimeType === "image/jpeg" || originalMimeType === "image/webp") {
+    return originalMimeType;
+  }
+  return "image/webp";
+};
+
+const COMPRESSION_ENABLED_KEY = "excalidash-image-compression";
+
+const isCompressionEnabled = (): boolean => {
+  if (typeof window === "undefined") return true;
+  const raw = window.localStorage?.getItem?.(COMPRESSION_ENABLED_KEY);
+  return raw !== "false";
+};
+
+const maybeCompressDataUrl = async (
+  inputDataURL: string,
+  sourceMimeType: string,
+  options?: {
+    minDataUrlLength?: number;
+    maxDimension?: number;
+    minImprovementRatio?: number;
+  }
+): Promise<CompressionResult> => {
+  if (!isCompressionEnabled()) {
+    return {
+      dataURL: inputDataURL,
+      mimeType: sourceMimeType,
+      width: 0,
+      height: 0,
+      changed: false,
+    };
+  }
+
+  const minDataUrlLength = options?.minDataUrlLength ?? DEFAULT_MIN_DATA_URL_LENGTH;
+  const maxDimension = options?.maxDimension ?? DEFAULT_MAX_DIMENSION;
+  const minImprovementRatio = options?.minImprovementRatio ?? DEFAULT_MIN_IMPROVEMENT_RATIO;
+
+  if (!isDataImageUrl(inputDataURL)) {
+    return {
+      dataURL: inputDataURL,
+      mimeType: sourceMimeType,
+      width: 0,
+      height: 0,
+      changed: false,
+    };
+  }
+
+  const effectiveMimeType = (sourceMimeType || getMimeTypeFromDataUrl(inputDataURL) || "").toLowerCase();
+  if (!canCompressMimeType(effectiveMimeType)) {
+    return {
+      dataURL: inputDataURL,
+      mimeType: effectiveMimeType || sourceMimeType,
+      width: 0,
+      height: 0,
+      changed: false,
+    };
+  }
+
+  if (inputDataURL.length < minDataUrlLength) {
+    return {
+      dataURL: inputDataURL,
+      mimeType: effectiveMimeType,
+      width: 0,
+      height: 0,
+      changed: false,
+    };
+  }
+
+  const image = await loadImageFromDataUrl(inputDataURL);
+  const baseWidth = image.naturalWidth || image.width || 1;
+  const baseHeight = image.naturalHeight || image.height || 1;
+  const { width, height } = clampDimension(baseWidth, baseHeight, maxDimension);
+  const canvas = drawToCanvas(image, width, height);
+  const targetMimeType = getTargetMimeType(effectiveMimeType);
+
+  const qualityCandidates = [0.82, 0.74, 0.66, 0.58];
+  let best = inputDataURL;
+
+  for (const quality of qualityCandidates) {
+    const next = canvas.toDataURL(targetMimeType, quality);
+    if (next.length < best.length) {
+      best = next;
+    }
+  }
+
+  const improvedEnough = best.length <= Math.floor(inputDataURL.length * minImprovementRatio);
+  if (!improvedEnough) {
+    return {
+      dataURL: inputDataURL,
+      mimeType: effectiveMimeType,
+      width: baseWidth,
+      height: baseHeight,
+      changed: false,
+    };
+  }
+
+  // Confiar en el MIME realmente codificado en la salida, no en el tipo que
+  // pedimos. Firefox (y algunos otros navegadores) puede recurrir
+  // silenciosamente a PNG mientras devuelve una petición `data:image/webp`
+  // sin cambios, así que etiquetar el registro con `targetMimeType`
+  // corrompería el mimeType almacenado.
+  const actualMimeType = getMimeTypeFromDataUrl(best) || targetMimeType;
+
+  return {
+    dataURL: best,
+    mimeType: actualMimeType,
+    width,
+    height,
+    changed: true,
+  };
+};
+
+export const compressDroppedImagePayload = async (args: {
+  dataURL: string;
+  mimeType: string;
+}) => maybeCompressDataUrl(args.dataURL, args.mimeType);
+
+// Recordar las dataURLs que ya hemos procesado para que el sondeo de
+// guardado por segundo no vuelva a codificar la misma imagen (sin cambios o
+// ya comprimida) en cada tick. Las claves son las propias cadenas dataURL,
+// que ya están referenciadas por los registros de archivo activos, así que
+// esto solo almacena punteros extra, no bytes de imagen extra.
+const MAX_COMPRESSION_MEMO_ENTRIES = 512;
+const processedDataUrls = new Set<string>();
+
+const rememberProcessedDataUrl = (dataURL: string): void => {
+  if (processedDataUrls.size >= MAX_COMPRESSION_MEMO_ENTRIES) {
+    processedDataUrls.clear();
+  }
+  processedDataUrls.add(dataURL);
+};
+
+// Expuesto para pruebas; también útil para descartar entradas obsoletas entre dibujos.
+export const resetImageCompressionMemo = (): void => {
+  processedDataUrls.clear();
+};
+
+export const compressExcalidrawFiles = async <T extends Record<string, ExcalidrawFileRecord>>(
+  files: T
+): Promise<{
+  files: T;
+  changed: boolean;
+  changedIds: string[];
+}> => {
+  const entries = Object.entries(files || {});
+  if (entries.length === 0) {
+    return { files, changed: false, changedIds: [] };
+  }
+
+  let changed = false;
+  const changedIds: string[] = [];
+  const next: Record<string, ExcalidrawFileRecord> = { ...files };
+
+  for (const [id, fileRecord] of entries) {
+    const dataURL = fileRecord?.dataURL;
+    const mimeType =
+      (typeof fileRecord?.mimeType === "string" ? fileRecord.mimeType : getMimeTypeFromDataUrl(String(dataURL || ""))) ||
+      "";
+
+    if (!isDataImageUrl(dataURL) || !canCompressMimeType(mimeType.toLowerCase())) {
+      continue;
+    }
+
+    // Saltar imágenes que ya hemos intentado (fallaron, no valía la pena
+    // comprimirlas, o cuya salida comprimida ya produjimos) para detener el
+    // bucle inútil de cada segundo.
+    if (processedDataUrls.has(dataURL)) continue;
+
+    try {
+      const compressed = await maybeCompressDataUrl(dataURL, mimeType);
+      rememberProcessedDataUrl(dataURL);
+      if (!compressed.changed) continue;
+
+      // La salida es nuestro mejor esfuerzo; memoizarla para que no se
+      // vuelva a codificar cuando regrese a través del sondeo tras
+      // addFiles().
+      rememberProcessedDataUrl(compressed.dataURL);
+      changed = true;
+      changedIds.push(id);
+      next[id] = {
+        ...fileRecord,
+        dataURL: compressed.dataURL,
+        mimeType: compressed.mimeType,
+      };
+    } catch {
+      // Conservar los datos de imagen originales ante un fallo de
+      // compresión, pero recordarlo para que un error de
+      // decodificación/codificación no se reintente en cada tick de
+      // guardado posterior.
+      rememberProcessedDataUrl(dataURL);
+    }
+  }
+
+  return {
+    // Solo se sustituye dataURL/mimeType de entradas existentes: la forma de T se conserva.
+    files: changed ? (next as T) : files,
+    changed,
+    changedIds,
+  };
+};

@@ -1,0 +1,242 @@
+import React, { useEffect, useState } from "react";
+import { BellOff, ExternalLink, RefreshCw, XCircle } from "lucide-react";
+import * as api from "../api";
+import { useT } from "../i18n/useT";
+
+const CHANNEL_KEY = "excalidash-update-channel";
+const DISMISSED_VERSION_KEY = "excalidash-update-ignored-version";
+const LAST_CHECK_KEY = "excalidash-update-last-check";
+const UPDATE_INFO_KEY = "excalidash-update-info";
+const CLOSED_VERSION_KEY = "excalidash-update-banner-closed-version";
+const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+const safeGetItem = (key: string): string | null => {
+  try {
+    if (typeof window === "undefined") return null;
+    const storage = window.localStorage;
+    if (!storage || typeof storage.getItem !== "function") return null;
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const safeSetItem = (key: string, value: string): void => {
+  try {
+    if (typeof window === "undefined") return;
+    const storage = window.localStorage;
+    if (!storage || typeof storage.setItem !== "function") return;
+    storage.setItem(key, value);
+  } catch {
+    // Ignorar almacenamiento no disponible en contextos privados/embebidos.
+  }
+};
+
+const safeGetSessionItem = (key: string): string | null => {
+  try {
+    if (typeof window === "undefined") return null;
+    const storage = window.sessionStorage;
+    if (!storage || typeof storage.getItem !== "function") return null;
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const safeSetSessionItem = (key: string, value: string): void => {
+  try {
+    if (typeof window === "undefined") return;
+    const storage = window.sessionStorage;
+    if (!storage || typeof storage.setItem !== "function") return;
+    storage.setItem(key, value);
+  } catch {
+    // Ignorar almacenamiento no disponible en contextos privados/embebidos.
+  }
+};
+
+const readChannel = (): api.UpdateChannel => {
+  const raw = safeGetItem(CHANNEL_KEY);
+  return raw === "prerelease" ? "prerelease" : "stable";
+};
+
+const writeChannel = (channel: api.UpdateChannel) => {
+  safeSetItem(CHANNEL_KEY, channel);
+};
+
+const lastCheckStorageKey = (channel: api.UpdateChannel) => `${LAST_CHECK_KEY}:${channel}`;
+const updateInfoStorageKey = (channel: api.UpdateChannel) => `${UPDATE_INFO_KEY}:${channel}`;
+const closedVersionStorageKey = (channel: api.UpdateChannel) => `${CLOSED_VERSION_KEY}:${channel}`;
+
+const shouldCheckNow = (channel: api.UpdateChannel): boolean => {
+  const raw = safeGetItem(lastCheckStorageKey(channel));
+  const last = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(last)) return true;
+  return Date.now() - last >= CHECK_INTERVAL_MS;
+};
+
+const markCheckedNow = (channel: api.UpdateChannel) => {
+  safeSetItem(lastCheckStorageKey(channel), String(Date.now()));
+};
+
+const readCachedInfo = (channel: api.UpdateChannel): api.UpdateInfo | null => {
+  const raw = safeGetItem(updateInfoStorageKey(channel));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as api.UpdateInfo;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedInfo = (channel: api.UpdateChannel, info: api.UpdateInfo) => {
+  safeSetItem(updateInfoStorageKey(channel), JSON.stringify(info));
+};
+
+export const UpdateBanner: React.FC = () => {
+  const { t } = useT();
+  const [channel, setChannel] = useState<api.UpdateChannel>(() => readChannel());
+  const [info, setInfo] = useState<api.UpdateInfo | null>(() => readCachedInfo(readChannel()));
+  const [loading, setLoading] = useState(false);
+  const [ignoredVersion, setIgnoredVersion] = useState<string | null>(() =>
+    safeGetItem(DISMISSED_VERSION_KEY)
+  );
+  const [closedVersion, setClosedVersion] = useState<string | null>(() =>
+    safeGetSessionItem(closedVersionStorageKey(readChannel()))
+  );
+
+  const load = async (force: boolean, isCancelled: () => boolean = () => false) => {
+    if (!force && !shouldCheckNow(channel)) return;
+    setLoading(true);
+    try {
+      const data = await api.getUpdateInfo(channel);
+      if (isCancelled()) return;
+      setInfo(data);
+      writeCachedInfo(channel, data);
+      markCheckedNow(channel);
+    } catch {
+      if (!isCancelled()) markCheckedNow(channel);
+    } finally {
+      // react-doctor-disable-next-line react-doctor/no-loading-flag-reset-outside-finally -- false positive: this IS inside finally (always runs); the guard is a stale-effect cancellation check (React Strict Mode / re-run), not a success-only reset.
+      if (!isCancelled()) setLoading(false);
+    }
+  };
+
+  // react-doctor-disable-next-line react-doctor/no-set-state-after-await-in-effect -- false positive: the cancellation guard is inside load() itself (isCancelled, checked before every setState after its await), the detector just can't trace it through the function call.
+  useEffect(() => {
+    let cancelled = false;
+    setInfo(readCachedInfo(channel));
+    setClosedVersion(safeGetSessionItem(closedVersionStorageKey(channel)));
+    void load(false, () => cancelled);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel]);
+
+  useEffect(() => {
+    setIgnoredVersion(safeGetItem(DISMISSED_VERSION_KEY));
+  }, [info?.latestVersion]);
+
+  useEffect(() => {
+    setClosedVersion(safeGetSessionItem(closedVersionStorageKey(channel)));
+  }, [channel, info?.latestVersion]);
+
+  const updateAvailable =
+    info?.outboundEnabled &&
+    info?.isUpdateAvailable === true &&
+    Boolean(info.latestVersion) &&
+    info.latestVersion !== ignoredVersion &&
+    info.latestVersion !== closedVersion;
+
+  if (!updateAvailable) return null;
+
+  return (
+    <div className="sticky top-0 z-[44] -mt-2 mb-6 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/80 dark:bg-emerald-950/30 backdrop-blur-md px-3 py-2 shadow-sm transition duration-200">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 flex-shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-wider">{t("banner.updateAvailable")}</span>
+          </div>
+          <div className="min-w-0 flex items-center gap-2">
+            <span className="text-sm font-bold text-emerald-950 dark:text-emerald-50 truncate">
+              v{info?.latestVersion}
+            </span>
+            <span className="hidden sm:inline text-xs font-medium text-emerald-900/60 dark:text-emerald-200/40">
+              ({channel})
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <select
+            value={channel}
+            onChange={(e) => {
+              const next = (e.target.value === "prerelease" ? "prerelease" : "stable") as api.UpdateChannel;
+              writeChannel(next);
+              setChannel(next);
+            }}
+            className="h-8 px-2 rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-white/50 dark:bg-neutral-900/50 text-xs font-bold text-emerald-950 dark:text-emerald-50 outline-none hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
+            title={t("banner.updateChannel")}
+            aria-label={t("banner.updateChannel")}
+          >
+            <option value="stable">stable</option>
+            <option value="prerelease">prerelease</option>
+          </select>
+
+          {info?.latestUrl ? (
+            <a
+              href={info.latestUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="h-8 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-emerald-600 dark:bg-emerald-600/80 text-[11px] font-black uppercase tracking-wider text-white hover:bg-emerald-700 dark:hover:bg-emerald-500 transition shadow-sm shadow-emerald-900/10"
+            >
+              <ExternalLink size={14} strokeWidth={2.5} />
+              <span className="hidden sm:inline">{t("banner.release")}</span>
+            </a>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => {
+              const latest = info?.latestVersion;
+              if (!latest) return;
+              safeSetSessionItem(closedVersionStorageKey(channel), latest);
+              setClosedVersion(latest);
+            }}
+            className="h-8 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-white/70 dark:bg-neutral-900/60 border border-emerald-200 dark:border-emerald-800/50 text-[11px] font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-100 hover:bg-white dark:hover:bg-neutral-900 transition-colors"
+            title={t("banner.closeTooltip")}
+          >
+            <XCircle size={14} strokeWidth={2.5} />
+            <span className="hidden sm:inline">{t("banner.close")}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const latest = info?.latestVersion;
+              if (!latest) return;
+              safeSetItem(DISMISSED_VERSION_KEY, latest);
+              setIgnoredVersion(latest);
+            }}
+            className="h-8 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 text-[11px] font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+            title={t("banner.ignoreTooltip")}
+          >
+            <BellOff size={14} strokeWidth={2.5} />
+            <span className="hidden sm:inline">{t("banner.ignore")}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void load(true)}
+            disabled={loading}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-white/70 dark:bg-neutral-900/60 border border-emerald-200 dark:border-emerald-800/50 text-emerald-900 dark:text-emerald-100 hover:bg-white dark:hover:bg-neutral-900 transition-colors disabled:opacity-50"
+            title={t("banner.recheckNow")}
+            aria-label={t("banner.recheckNow")}
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

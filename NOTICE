@@ -1,0 +1,172 @@
+ExcaliClaw — AVISOS Y LICENCIAS DE TERCEROS
+===========================================
+
+ExcaliClaw (https://excaliclaw.com) es una versión modificada de ExcaliDash,
+de Zimeng Xiong (https://github.com/ZimengXiong/ExcaliDash), publicada bajo la
+GNU Lesser General Public License v3.0 (LGPL-3.0). El texto completo de esa
+licencia está en el archivo LICENSE de este repositorio. Este NOTICE recoge,
+además, los avisos de copyright y las licencias del software de terceros que
+ExcaliClaw usa o distribuye. Cada componente conserva su propia licencia.
+
+Esta lista recoge las dependencias directas de este repositorio (versiones
+instaladas a 2026-10-03). Las dependencias indirectas llevan sus propias
+licencias dentro de sus paquetes. La versión
+visible para el público está en https://excaliclaw.com/credits.
+
+
+1. ORIGEN DEL CÓDIGO
+--------------------
+
+ExcaliDash — https://github.com/ZimengXiong/ExcaliDash
+  Licencia: LGPL-3.0 (el proyecto pasó de AGPL a LGPL el 2026-08-02).
+  Autoría: Zimeng Xiong y contribuidores: Adrian Acala, OhYee, BoxBoxJason,
+  Davi Fernandes Rezende, Davidutz_, Jyotirmoy Bandyopadhyaya (Bravo68).
+
+
+2. EDITOR DE DIBUJO
+-------------------
+
+Excalidraw (@excalidraw/excalidraw 0.18.1) — https://github.com/excalidraw/excalidraw
+  Licencia: MIT
+  Copyright (c) 2020 Excalidraw
+
+Excalifont (fuente incluida con Excalidraw) — https://plus.excalidraw.com/excalifont
+  Licencia: SIL Open Font License 1.1 (OFL-1.1), uso personal y comercial.
+  Autoría: Excalidraw. El texto de la licencia viaja dentro de los archivos de
+  la fuente; versión pública en https://openfontlicense.org
+
+
+3. LIBRERÍAS DE TERCEROS (dependencias directas)
+------------------------------------------------
+
+Licencia MIT (texto en la sección 4.1):
+
+  react 18.3.1, react-dom 18.3.1
+    Copyright (c) Facebook, Inc. and its affiliates.
+  react-router-dom 7.18.2
+    Copyright (c) React Training LLC 2015-2019
+    Copyright (c) Remix Software Inc. 2020-2021
+  swr 2.5.1
+    Copyright (c) 2023 Vercel, Inc.
+  zustand 5.0.15
+    Copyright (c) 2019 Paul Henschel
+  socket.io-client 4.8.1
+    Copyright (c) 2014-present Guillermo Rauch and Socket.IO contributors
+  axios 1.20.0
+    Copyright (c) 2014-present Matt Zabriskie & Collaborators
+  lodash 4.18.1
+    Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
+    Basado en Underscore.js, copyright Jeremy Ashkenas, DocumentCloud and
+    Investigative Reporters & Editors (ver el LICENSE del paquete).
+  date-fns 4.1.0
+    Copyright (c) 2021 Sasha Koss and Lesha Koss https://kossnocorp.mit-license.org
+  qrcode 1.5.4
+    Copyright (c) 2012 Ryan Day
+  sonner 2.0.7
+    Copyright (c) 2023 Emil Kowalski
+  @types/lodash (tipos de TypeScript)
+    Copyright (c) Microsoft Corporation.
+  clsx 2.1.1
+    Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)
+  drawably 0.4.2
+    Copyright (c) 2026 Daniel Belyi
+  @sentry/react 11.0.0
+    Copyright (c) 2019 Functional Software, Inc. dba Sentry
+  jszip 3.10.1 (doble licencia "MIT OR GPL-3.0-or-later"; se usa bajo MIT)
+    Copyright (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger,
+    António Afonso
+
+Licencia ISC (texto en la sección 4.2):
+
+  lucide-react 0.554.0
+    Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2023 as
+    part of Feather (MIT). All other copyright (c) for Lucide are held by
+    Lucide Contributors 2025.
+
+Licencia BSD-3-Clause (texto en la sección 4.3):
+
+  appwrite 28.1.0 (SDK web)
+    Copyright (c) 2026 Appwrite (https://appwrite.io) and individual contributors.
+
+Licencia propia de GreenSock:
+
+  gsap 3.15.0 — "Standard 'no charge' license"
+    Texto y condiciones: https://gsap.com/standard-license
+    No es una licencia de código abierto aprobada por la OSI: consulta sus
+    condiciones si vas a reutilizar este paquete.
+
+
+4. TEXTOS DE LICENCIA
+---------------------
+
+4.1 MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+4.2 ISC License
+
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted, provided that the above
+  copyright notice and this permission notice appear in all copies.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  PERFORMANCE OF THIS SOFTWARE.
+
+4.3 BSD 3-Clause License
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+  3. Neither the name of the copyright holder nor the names of its contributors
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+5. SERVICIOS DE TERCEROS Y MARCAS
+---------------------------------
+
+ExcaliClaw funciona sobre Cloudflare, Appwrite, Dodo Payments y Sentry, cada
+uno bajo sus propias condiciones. Excalidraw, ExcaliDash, Miro, FigJam, draw.io,
+Claude, Cursor, VS Code y demás nombres de producto citados pertenecen a sus
+dueños; se usan solo para describir compatibilidad o comparaciones y no
+implican afiliación ni respaldo.
+
+Si crees que falta un crédito o una licencia está mal descrita:
+support@excaliclaw.com
