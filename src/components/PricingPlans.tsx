@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Minus, Sparkles, Users } from "lucide-react";
-import { DrawablyAlert, DrawablyBadge, DrawablyButton } from "drawably/react";
+import { DrawablyAlert, DrawablyButton } from "drawably/react";
+import { AnnualSavingsBadge } from "./AnnualSavingsBadge";
 import { useT } from "../i18n/useT";
 import * as api from "../api";
 import type { BillingInterval, PlanId as ApiPlanId, LocalizedPrices } from "../api/billing";
@@ -332,7 +333,7 @@ const PlanPrice: React.FC<{ plan: Plan; view: PlanView; isYearly: boolean; lang:
           <span className="text-sm text-slate-500 dark:text-neutral-400">{yearlyPaid ? t("plan.perYear") : plan.priceUnit}</span>
         )}
       </div>
-      {yearlyPaid && <p className="-mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">{t("plan.billedYearly")}</p>}
+      <AnnualSavingsBadge isYearly={isYearly} isPaid={isPaidPlan} label={t("plan.interval.save")} />
     </>
   );
 };
@@ -478,9 +479,6 @@ const IntervalSelector: React.FC<{
         <span>{option === "month" ? t("plan.interval.monthly") : t("plan.interval.yearly")}</span>
       </DrawablyButton>
     ))}
-    <DrawablyBadge variant="outline" className="text-xs">
-      <span>{t("plan.interval.save")}</span>
-    </DrawablyBadge>
   </div>
 );
 
