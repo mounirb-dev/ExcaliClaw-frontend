@@ -22,7 +22,7 @@ export default defineConfig(({ command }) => {
   const nodeEnv = process.env.NODE_ENV || (command === "build" ? "production" : "development");
   // Points at `wrangler dev` (the Cloudflare Worker backend). Proxied
   // same-origin so the Worker's `excalidash_session` cookie (SameSite=Lax,
-  // deliberately not None — see workers/src/index.ts) actually rides along;
+  // deliberately not None — see the Worker backend) actually rides along;
   // a cross-origin VITE_API_URL pointing straight at the Worker's port
   // fails every credentialed request with net::ERR_FAILED.
   const devBackendTarget = process.env.VITE_DEV_BACKEND_URL?.trim() || "http://localhost:8900";
@@ -51,7 +51,7 @@ export default defineConfig(({ command }) => {
       proxy: {
         // Every top-level path the Worker itself handles (see the
         // `segments[0] === "..."` / `url.pathname === "/auth/..."` checks
-        // in workers/src/index.ts). `/rooms/:id/ws` upgrades to a
+        // in the Worker backend). `/rooms/:id/ws` upgrades to a
         // WebSocket, hence `ws: true`.
         "/auth": { target: devBackendTarget, changeOrigin: true },
         "/collections": { target: devBackendTarget, changeOrigin: true },
