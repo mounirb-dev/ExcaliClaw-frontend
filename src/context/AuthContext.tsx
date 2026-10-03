@@ -71,9 +71,15 @@ const storeUser = (userData: unknown): void => {
   localStorage.setItem(USER_VERIFIED_AT_KEY, String(Date.now()));
 };
 
+// La landing (mismo origen) guarda en esta clave quién está conectado durante unos minutos para no
+// pedir /auth/me en cada visita. Si no se borra al salir, la cabecera de la landing sigue mostrando
+// el usuario anterior hasta que caduque esa copia.
+const LANDING_AUTH_CACHE_KEY = 'excaliclaw-home-auth';
+
 const clearStoredUser = (): void => {
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(USER_VERIFIED_AT_KEY);
+  localStorage.removeItem(LANDING_AUTH_CACHE_KEY);
 };
 
 // Sesión confirmada con el servidor hace poco: al entrar no hace falta preguntar /auth/me.

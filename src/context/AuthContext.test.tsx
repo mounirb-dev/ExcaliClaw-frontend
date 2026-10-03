@@ -96,6 +96,8 @@ describe("AuthProvider", () => {
 
   it("clears the stored user when /auth/me and the refresh both fail", async () => {
     localStorage.setItem(USER_KEY, JSON.stringify(alice));
+    // Copia del usuario que guarda la landing: al olvidar la sesión también debe desaparecer.
+    localStorage.setItem("excaliclaw-home-auth", JSON.stringify({ user: alice, cachedAt: Date.now() }));
     mockAuthMe.mockRejectedValue(new Error("401"));
     mockAuthRefresh.mockRejectedValue(new Error("401"));
 
@@ -104,6 +106,7 @@ describe("AuthProvider", () => {
 
     expect(screen.getByTestId("user-email").textContent).toBe("none");
     expect(localStorage.getItem(USER_KEY)).toBeNull();
+    expect(localStorage.getItem("excaliclaw-home-auth")).toBeNull();
   });
 
   it("recovers the session when retrying after a failure", async () => {
